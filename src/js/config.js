@@ -22,6 +22,7 @@ export const defaultOptions = {
     'paragraph',
     'radio-group',
     'select',
+    'locationList',
     'text',
     'textarea',
   ],

@@ -88,7 +88,7 @@
     }
 
     &.moving {
-      opacity: .6;
+      opacity: 0.6;
     }
 
     &.formbuilder-separator {
@@ -135,7 +135,7 @@
 
     button {
       width: 100%;
-      font-size: .85em !important;
+      font-size: 0.85em !important;
       display: block !important;
       border-radius: 0 !important;
       margin-top: -1px;
@@ -161,4 +161,9 @@
   button {
     border: 0 none;
   }
+}
+
+.option-map {
+  width: 50px;
+  height: 30px;
 }

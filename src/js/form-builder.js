@@ -27,6 +27,8 @@ import {
   getContentType,
 } from './utils'
 import { css_prefix_text } from '../fonts/config.json'
+import './location-picker-window'
+import MapHelper from './location-picker-window'
 
 const DEFAULT_TIMEOUT = 333
 
@@ -286,13 +288,25 @@ const FormBuilder = function (opts, element, $) {
         value: hyphenCase(label),
       }
     }
+    // for the default count of options of the location list, define the template of the location list data
+    const locationListOptionDataTemplate = count => {
+      return {
+        selected: false,
+        title: 'Title ' + count,
+        description: 'Description ' + count,
+        value: count + ',' + count,
+      }
+    }
 
     if (!values || !values.length) {
       let defaultOptCount = [1, 2, 3]
       if (['checkbox-group', 'checkbox'].includes(type)) {
         defaultOptCount = [1]
       }
-      fieldValues = defaultOptCount.map(optionDataTemplate)
+      if (type === 'locationList') {
+        // define the default content of the option list
+        fieldValues = defaultOptCount.map(locationListOptionDataTemplate)
+      } else fieldValues = defaultOptCount.map(optionDataTemplate)
 
       const firstOption = fieldValues[0]
       if (firstOption.hasOwnProperty('selected') && type !== 'radio-group') {
@@ -304,20 +318,40 @@ const FormBuilder = function (opts, element, $) {
     }
 
     const optionActionsWrap = m('div', optionActions, { className: 'option-actions' })
-    const options = m(
-      'ol',
-      fieldValues.map((option, index) => {
-        const optionData = config.opts.onAddOption(option, { type, index, isMultiple })
-        return selectFieldOptions(optionData, isMultiple)
-      }),
-      {
-        className: 'sortable-options',
-      },
-    )
-    const optionsWrap = m('div', [options, optionActionsWrap], { className: 'sortable-options-wrap' })
+    let options = null
+    let optionsWrap = null
+
+    if (type === 'locationList') {
+      // create the editable part of the list of options for the location list
+      options = m(
+        'ol',
+        fieldValues.map((option, index) => {
+          const optionData = config.opts.onAddOption(option, { type, index, isMultiple })
+          delete optionData.label
+          return locationListSelectFieldOptions(optionData, isMultiple)
+        }),
+        {
+          className: 'sortable-options',
+        },
+      )
+      optionsWrap = m('div', [options, optionActionsWrap], {
+        className: 'sortable-options-wrap',
+      })
+    } else {
+      options = m(
+        'ol',
+        fieldValues.map((option, index) => {
+          const optionData = config.opts.onAddOption(option, { type, index, isMultiple })
+          return selectFieldOptions(optionData, isMultiple)
+        }),
+        {
+          className: 'sortable-options',
+        },
+      )
+      optionsWrap = m('div', [options, optionActionsWrap], { className: 'sortable-options-wrap' })
+    }
 
     fieldOptions.push(optionsWrap)
-
     return m('div', fieldOptions, { className: 'form-group field-options' }).outerHTML
   }
 
@@ -350,6 +384,7 @@ const FormBuilder = function (opts, element, $) {
       paragraph: ['label', 'subtype', 'className', 'access'],
       number: defaultAttrs.concat(['min', 'max', 'step']),
       select: defaultAttrs.concat(['multiple', 'options']),
+      locationList: defaultAttrs.concat(['multiple', 'options']),
       textarea: defaultAttrs.concat(['subtype', 'maxlength', 'rows']),
     }
 
@@ -1045,7 +1080,69 @@ const FormBuilder = function (opts, element, $) {
       const optionClassName = `option-${prop} option-attr`
       attrs['data-attr'] = prop
       attrs.className = attrs.className ? `${attrs.className} ${optionClassName}` : optionClassName
+      return m(tag, content, attrs)
+    })
 
+    const removeAttrs = {
+      className: `remove btn ${css_prefix_text}cancel`,
+      title: mi18n.get('removeMessage'),
+    }
+    optionInputs.push(m('a', null, removeAttrs))
+
+    return m('li', optionInputs).outerHTML
+  }
+
+  // Location List select field html, since there may be multiple
+  const locationListSelectFieldOptions = function (optionData, multipleSelect) {
+    let fieldsId // every location longlat must have an id so we can fill it with the value chosen on the map
+    const optionTemplate = {
+      selected: false,
+      title: 'Title',
+      description: '',
+      value: '0,0',
+      map: new Object({ tag: 'label', content: '📍', attrs: '' }),
+    }
+    const optionInputType = {
+      selected: multipleSelect ? 'checkbox' : 'radio',
+    }
+    const optionInputTypeMap = {
+      boolean: (value, prop) => {
+        const attrs = { value, type: optionInputType[prop] || 'checkbox' }
+        if (value) {
+          attrs.checked = !!value
+        }
+        return ['input', null, attrs]
+      },
+      number: value => ['input', null, { value, type: 'number' }],
+      string: (value, prop) => [
+        'input',
+        null,
+        { value, type: 'text', placeholder: mi18n.get(`placeholder.${prop}`) || '' },
+      ],
+      array: values => ['select', values.map(({ label, value }) => m('option', label, { value }))],
+      object: ({ tag, content, ...attrs }) => [tag, content, attrs],
+    }
+    optionData = { ...optionTemplate, ...optionData }
+
+    const optionInputs = Object.entries(optionData).map(([prop, val]) => {
+      const optionInputDataType = getContentType(val)
+      const [tag, content, attrs] = optionInputTypeMap[optionInputDataType](val, prop)
+
+      let optionClassName = `option-${prop} option-attr`
+      attrs['data-attr'] = prop
+      if (prop === 'title') attrs['placeholder'] = 'title e.g. "Washington DC"'
+      else if (prop === 'description') attrs['placeholder'] = 'description'
+      else if (prop === 'value') {
+        attrs['placeholder'] = 'value e.g. -77.0364,38.8951'
+        optionClassName += ' long-lat-value'
+        // for every longlat (location) input, generate a new fieldsId
+        fieldsId = Math.random().toString(36).substr(2, 9)
+        attrs.id = 'location-' + fieldsId
+      } else if (prop === 'map') {
+        optionClassName += ' btn'
+        attrs.id = 'btn-' + fieldsId
+      }
+      attrs.className = attrs.className ? `${attrs.className} ${optionClassName}` : optionClassName
       return m(tag, content, attrs)
     })
 
@@ -1108,6 +1205,23 @@ const FormBuilder = function (opts, element, $) {
 
   // Save field on change
   $stage.on('change blur keyup click', previewSelectors, throttle(saveAndUpdate, DEFAULT_TIMEOUT, { leading: false }))
+
+  // validate longlat field on change
+  $stage.on('change', '.long-lat-value', e => {
+    let val = e.currentTarget.value
+    const longlat = val.split(',')
+    if (!(longlat.length == 2 && !isNaN(longlat[0]) && !isNaN(longlat[1]))) {
+      h.dialog('The new (long, lat) values are incorrect, they must be(long, lat) must be like (12.34561,78.12345)')
+    }
+  })
+
+  // click location icon to locate a new longlat value
+  $stage.on('click', '.option-map', e => {
+    let id = e.currentTarget.id
+    id = id.replace('btn', 'location')
+    const mh = new MapHelper()
+    mh.openMapWindow(id)
+  })
 
   // delete options
   $stage.on('click touchstart', '.remove', e => {
@@ -1185,10 +1299,10 @@ const FormBuilder = function (opts, element, $) {
       return
     }
     const field = closest(e.target, '.form-field')
-    const optionTypes = ['select', 'checkbox-group', 'radio-group']
+    const optionTypes = ['locationList', 'select', 'checkbox-group', 'radio-group']
     if (optionTypes.includes(field.type)) {
       const options = field.getElementsByClassName('option-value')
-      if (field.type === 'select') {
+      if (field.type === 'select' || field.type === 'locationList') {
         forEach(options, i => {
           const selectedOption = options[i].parentElement.childNodes[0]
           selectedOption.checked = e.target.value === options[i].value
@@ -1354,13 +1468,16 @@ const FormBuilder = function (opts, element, $) {
     }
 
     const optionTemplate = { selected: false, label: '', value: '' }
+    const locationListOptionTemplate = { selected: false, title: '', description: '', value: '' }
     const $sortableOptions = $('.sortable-options', $optionWrap)
     const optionData = config.opts.onAddOption(optionTemplate, {
       type,
       index: $sortableOptions.children().length,
       isMultiple,
     })
-    $sortableOptions.append(selectFieldOptions(optionData, isMultiple))
+    if (type === 'locationList') {
+      $sortableOptions.append(locationListSelectFieldOptions(locationListOptionTemplate, isMultiple))
+    } else $sortableOptions.append(selectFieldOptions(optionData, isMultiple))
   })
 
   $stage.on('mouseover mouseout', '.remove, .del-button', e => $(e.target).closest('li').toggleClass('delete'))

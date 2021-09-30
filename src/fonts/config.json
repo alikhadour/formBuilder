@@ -210,6 +210,12 @@
       "css": "cancel",
       "code": 59404,
       "src": "mfglabs"
+    },
+    {
+      "uid": "13289e807e02b1d46f2fe10d81d6fba6",
+      "css": "locationList",
+      "code": 59406,
+      "src": "typicons"
     }
   ]
 }

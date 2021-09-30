@@ -45,7 +45,7 @@ export const filter = (elems, term, show = true) => {
   return filteredElems
 }
 
-export const optionFields = ['select', 'checkbox-group', 'checkbox', 'radio-group', 'autocomplete']
+export const optionFields = ['locationList', 'select', 'checkbox-group', 'checkbox', 'radio-group', 'autocomplete']
 
 export const optionFieldsRegEx = new RegExp(`(${optionFields.join('|')})`)
 /**

@@ -156,7 +156,7 @@ export default class controlSelect extends control {
       }
     }
     const toggleRequired = (checkboxes, isValid) => {
-      [].forEach.call(checkboxes, cb => {
+      ;[].forEach.call(checkboxes, cb => {
         if (isValid) {
           cb.removeAttribute('required')
         } else {
@@ -186,9 +186,7 @@ export default class controlSelect extends control {
       const selectedOptions = this.config.userData.slice()
 
       if (this.config.type === 'select') {
-        $(this.dom)
-          .val(selectedOptions)
-          .prop('selected', true)
+        $(this.dom).val(selectedOptions).prop('selected', true)
       } else if (this.config.type.endsWith('-group')) {
         this.dom.querySelectorAll('input').forEach(input => {
           if (input.classList.contains('other-val')) {

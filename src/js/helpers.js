@@ -365,11 +365,26 @@ export default class Helpers {
       previewData.multiple = $('[name="multiple"]', field).is(':checked')
 
       $('.sortable-options li', field).each(function (i, $option) {
-        const option = {
-          selected: $('.option-selected', $option).is(':checked'),
-          value: $('.option-value', $option).val(),
-          label: $('.option-label', $option).val(),
+        let option
+        if (fieldType === 'locationList') {
+          const title = $('.option-title', $option).val()
+          const description = $('.option-description', $option).val()
+          const value = $('.option-value', $option).val()
+          option = {
+            selected: $('.option-selected', $option).is(':checked'),
+            title,
+            description,
+            value,
+          }
+        } else {
+          const label = $('.option-label', $option).val()
+          option = {
+            selected: $('.option-selected', $option).is(':checked'),
+            value: $('.option-value', $option).val(),
+            label,
+          }
         }
+
         previewData.values.push(option)
       })
     }
