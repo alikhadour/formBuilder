@@ -55,7 +55,7 @@ export default class MapHelper {
                 center: [${lat}, ${lng}],
                 zoom: 7,
             });
-      
+      cx
             map.on("click", (e) => {
                 // e.lngLat is the longitude, latitude geographical position of the event.
                 lat = e.lngLat.lat.toFixed(5);
