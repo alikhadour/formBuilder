@@ -46,6 +46,7 @@ const FormBuilder = function (opts, element, $) {
   const layoutEngine = new opts.layout(opts.layoutTemplates, true)
 
   const h = new Helpers(formID, layoutEngine, formBuilder)
+  const mh = new MapHelper()
   const m = markup
   opts = h.processOptions(opts)
   data.layout = h.editorLayout(opts.controlPosition)
@@ -1210,17 +1211,35 @@ const FormBuilder = function (opts, element, $) {
   $stage.on('change', '.long-lat-value', e => {
     let val = e.currentTarget.value
     const longlat = val.split(',')
-    if (!(longlat.length == 2 && !isNaN(longlat[0]) && !isNaN(longlat[1]))) {
-      h.dialog('The new (long, lat) values are incorrect, they must be(long, lat) must be like (12.34561,78.12345)')
-    }
+    if (!(longlat.length === 2))
+      h.dialog('The new (lat,long) values are incorrect, they must be like (12.34561,78.12345)')
+    else if (!(!isNaN(longlat[0]) && longlat[0] >= -90 && longlat[0] <= 90))
+      h.dialog('The longitude value must be between -90 and 90.')
+    else if (!(!isNaN(longlat[1]) && longlat[1] >= -180 && longlat[1] <= 180))
+      h.dialog('The latitude value must be between -180 and 180.')
   })
 
   // click location icon to locate a new longlat value
   $stage.on('click', '.option-map', e => {
     let id = e.currentTarget.id
     id = id.replace('btn', 'location')
-    const mh = new MapHelper()
-    mh.openMapWindow(id)
+    let currentValue = $('#' + id).val()
+    let longlat = currentValue.split(',')
+    let lng = 0
+    let lat = 0
+    if (
+      longlat.length == 2 &&
+      !isNaN(longlat[0]) &&
+      longlat[0] >= -90 &&
+      longlat[0] <= 90 &&
+      !isNaN(longlat[1]) &&
+      longlat[1] >= -180 &&
+      longlat[1] <= 180
+    ) {
+      lng = longlat[0]
+      lat = longlat[1]
+    }
+    mh.openMapWindow(id, lng, lat)
   })
 
   // delete options
@@ -1364,6 +1383,20 @@ const FormBuilder = function (opts, element, $) {
     const $options = $('.option-selected', $(e.target).closest('.form-elements'))
     $options.each(i => ($options[i].type = newType))
     return newType
+  })
+
+  /**
+   * Toggle single select / location list option
+   * @param  {Object} e click event
+   */
+  $stage.on('change', '.option-selected', e => {
+    const $options = $('.option-selected', $(e.target).closest('.form-elements'))
+    console.log(e.target)
+    $options.each(i => {
+      if ($options[i] !== e.target) {
+        $options[i].checked = false
+      }
+    })
   })
 
   // format name attribute

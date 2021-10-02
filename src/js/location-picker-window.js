@@ -7,9 +7,10 @@ export default class MapHelper {
    *
    * @param  {String} id
    */
-  openMapWindow(id) {
+  openMapWindow(id, lng, lat) {
     // create a new popup window
-    let newWin = window.open('about:blank', 'map', 'width=900,height=900')
+    let newWin = this.popupCenter({ url: '', title: 'map', w: 900, h: 500 })
+    // window.open('about:blank', 'map', 'width=900,height=900')
     // define the content of the page
     let html = `
         <html>
@@ -51,8 +52,8 @@ export default class MapHelper {
             const map = new mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v11",
-                center: [-96, 37.8],
-                zoom: 3,
+                center: [${lat}, ${lng}],
+                zoom: 7,
             });
       
             map.on("click", (e) => {
@@ -75,5 +76,40 @@ export default class MapHelper {
         `
     // write the content of the page
     newWin.document.write(html)
+  }
+
+  popupCenter({ url, title, w, h }) {
+    // Fixes dual-screen position                             Most browsers      Firefox
+    const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX
+    const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY
+
+    const width = window.innerWidth
+      ? window.innerWidth
+      : document.documentElement.clientWidth
+      ? document.documentElement.clientWidth
+      : screen.width
+    const height = window.innerHeight
+      ? window.innerHeight
+      : document.documentElement.clientHeight
+      ? document.documentElement.clientHeight
+      : screen.height
+
+    const systemZoom = width / window.screen.availWidth
+    const left = (width - w) / 2 / systemZoom + dualScreenLeft
+    const top = (height - h) / 2 / systemZoom + dualScreenTop
+    const newWindow = window.open(
+      url,
+      title,
+      `
+      scrollbars=yes,
+      width=${w / systemZoom}, 
+      height=${h / systemZoom}, 
+      top=${top}, 
+      left=${left}
+      `,
+    )
+
+    if (window.focus) newWindow.focus()
+    return newWindow
   }
 }
